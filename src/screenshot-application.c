@@ -541,11 +541,13 @@ finish_prepare_screenshot (ScreenshotApplication *self,
   if (screenshot_config->copy_to_clipboard)
     {
       screenshot_save_to_clipboard (self);
-      screenshot_play_sound_effect ("screen-capture", _("Screenshot taken"));
-
-      g_application_release (G_APPLICATION (self));
-
-      return;
+      if (screenshot_config->file == NULL)
+        {
+          // Play the sound and quit here because we won't be doing a file
+          screenshot_play_sound_effect("screen-capture", _("Screenshot taken"));
+          g_application_release(G_APPLICATION(self));
+          return;
+        }
     }
 
   /* FIXME: apply the ICC profile according to the preferences.
@@ -561,9 +563,10 @@ finish_prepare_screenshot (ScreenshotApplication *self,
       self->priv->should_overwrite = TRUE;
       screenshot_save_to_file (self);
     }
-  else
-    screenshot_build_filename_async (screenshot_config->save_dir, NULL, build_filename_ready_cb, self);
-}
+  else if (screenshot_config->file == NULL && !screenshot_config->copy_to_clipboard)
+      // No filename was given and we aren't copying to the clipboard, so come up with our own filename
+      screenshot_build_filename_async(screenshot_config->save_dir, NULL, build_filename_ready_cb, self);
+  }
 
 static void
 rectangle_found_cb (GdkRectangle *rectangle,
